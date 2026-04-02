@@ -93,6 +93,17 @@ body {
 .cal-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 1.25rem; min-height: 28px; }
 .cal-chip { display: inline-flex; align-items: center; gap: 5px; background: var(--accent-light); border: 1px solid var(--accent-border); border-radius: 20px; font-size: 12px; color: var(--accent); padding: 3px 10px; }
 .cal-chip-x { cursor: pointer; font-size: 14px; line-height: 1; color: var(--accent); }
+/* ── 날짜별 시간 카드 ── */
+.date-cards { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.25rem; }
+.date-card { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.date-card-hdr { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--bg); border-bottom: 1px solid var(--border); }
+.date-card-lbl { font-size: 13px; font-weight: 500; color: var(--text); }
+.date-card-rm { width: 22px; height: 22px; border-radius: 50%; border: none; background: transparent; cursor: pointer; font-size: 17px; color: var(--text-hint); line-height: 1; display: flex; align-items: center; justify-content: center; font-family: inherit; }
+.date-card-rm:hover { color: var(--danger); }
+.date-card-body { display: flex; align-items: center; gap: 8px; padding: 8px 12px; }
+.date-card-body select { flex: 1; padding: 7px 8px; border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 13px; font-family: inherit; background: var(--surface); color: var(--text); outline: none; }
+.date-card-body select:focus { border-color: var(--accent); }
+.date-card-sep { font-size: 13px; color: var(--text-hint); }
 .sec-label { font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 8px; }
 .link-box { display: none; margin-top: 1rem; padding: 12px 14px; background: var(--accent-light); border: 1px solid var(--accent-border); border-radius: var(--radius); }
 .link-label { font-size: 11px; color: var(--accent); font-weight: 500; margin-bottom: 5px; }
@@ -190,32 +201,9 @@ table.host-tt td.hcell.on { background: #1e3a5f; border-color: #1e3a5f; }
           <div class="cal-days" id="cal-days"></div>
         </div>
       </div>
-      <div class="cal-chips" id="cal-chips"></div>
-      <div class="sec-label">시간 범위</div>
-      <div class="grid2">
-        <div class="fg">
-          <label>시작</label>
-          <select id="time-start">
-            <option value="8">08:00</option>
-            <option value="9" selected>09:00</option>
-            <option value="10">10:00</option>
-            <option value="11">11:00</option>
-            <option value="12">12:00</option>
-            <option value="13">13:00</option>
-          </select>
-        </div>
-        <div class="fg">
-          <label>종료</label>
-          <select id="time-end">
-            <option value="15">15:00</option>
-            <option value="16">16:00</option>
-            <option value="17">17:00</option>
-            <option value="18" selected>18:00</option>
-            <option value="19">19:00</option>
-            <option value="20">20:00</option>
-          </select>
-        </div>
-      </div>
+      <div class="cal-chips" id="cal-chips" style="display:none;"></div>
+      <div class="sec-label" id="date-cards-label" style="display:none;">날짜별 시간 범위</div>
+      <div class="date-cards" id="date-cards"></div>
       <div class="fg">
         <label>제목</label>
         <input type="text" id="event-title" value="1분기 팀 미팅" />
@@ -378,8 +366,9 @@ var AVATAR_COLORS = [
   {bg:'#EEEDFE',color:'#3C3489'},
 ];
 
-// 날짜 기반 데이터 (ISO string 'YYYY-MM-DD' 배열)
-var selectedDateStrs = []; // 관리자가 선택한 날짜들
+// 날짜별 시간 범위 (iso -> {start, end}) — 선택 순서 유지용 배열도 병행
+var selectedDates = {}; // { 'YYYY-MM-DD': { start: 9, end: 18 } }
+var selectedDateStrs = []; // 정렬된 ISO 배열 (타임테이블 컬럼 순서용)
 var calViewYear, calViewMonth;
 (function() {
   var now = new Date();
@@ -387,8 +376,8 @@ var calViewYear, calViewMonth;
   calViewMonth = now.getMonth();
 })();
 
-// 참가자 타임테이블용: selectedDateStrs를 인덱스 배열로 변환해서 사용
-// slot key = "dateIdx-hour" (dateIdx = selectedDateStrs의 index)
+var TIME_OPTIONS = [];
+for (var _h = 6; _h <= 24; _h++) TIME_OPTIONS.push(_h);
 
 var selectedCells = new Set();
 var isDragging = false;
@@ -410,6 +399,17 @@ function formatDateLabel(iso) {
   var date = new Date(y, m, d);
   var days = ['일','월','화','수','목','금','토'];
   return (m+1) + '/' + d + ' (' + days[date.getDay()] + ')';
+}
+function makeTimeOptions(selectEl, defaultVal) {
+  selectEl.innerHTML = '';
+  for (var i = 0; i < TIME_OPTIONS.length; i++) {
+    var h = TIME_OPTIONS[i];
+    var opt = document.createElement('option');
+    opt.value = h;
+    opt.textContent = (h < 10 ? '0' : '') + h + ':00';
+    if (h === defaultVal) opt.selected = true;
+    selectEl.appendChild(opt);
+  }
 }
 
 function changeCalMonth(dir) {
@@ -440,7 +440,7 @@ function renderCalendar() {
     if (isPast) cls += ' past';
     else if (dow===0) cls += ' sun';
     else if (dow===6) cls += ' sat';
-    if (selectedDateStrs.indexOf(iso) !== -1) cls += ' on';
+    if (selectedDates[iso]) cls += ' on';
     el.className = cls;
     el.textContent = d;
     if (!isPast) {
@@ -450,29 +450,47 @@ function renderCalendar() {
     }
     grid.appendChild(el);
   }
-  renderCalChips();
+  renderDateCards();
 }
 
 function toggleCalDate(iso) {
-  var idx = selectedDateStrs.indexOf(iso);
-  if (idx !== -1) selectedDateStrs.splice(idx, 1);
-  else selectedDateStrs.push(iso);
-  selectedDateStrs.sort();
+  if (selectedDates[iso]) {
+    delete selectedDates[iso];
+  } else {
+    selectedDates[iso] = { start: 9, end: 18 };
+  }
+  selectedDateStrs = Object.keys(selectedDates).sort();
   renderCalendar();
 }
 
-function renderCalChips() {
-  var wrap = document.getElementById('cal-chips');
+function renderDateCards() {
+  var keys = Object.keys(selectedDates).sort();
+  var lbl = document.getElementById('date-cards-label');
+  var wrap = document.getElementById('date-cards');
+  lbl.style.display = keys.length ? 'block' : 'none';
   wrap.innerHTML = '';
-  for (var i=0; i<selectedDateStrs.length; i++) {
-    var iso = selectedDateStrs[i];
-    var chip = document.createElement('span');
-    chip.className = 'cal-chip';
-    chip.innerHTML = formatDateLabel(iso) + '<span class="cal-chip-x" data-iso="'+iso+'">×</span>';
-    wrap.appendChild(chip);
-  }
-  wrap.querySelectorAll('.cal-chip-x').forEach(function(x) {
-    x.onclick = function() { toggleCalDate(this.getAttribute('data-iso')); };
+  keys.forEach(function(iso) {
+    var card = document.createElement('div'); card.className = 'date-card';
+
+    var hdr = document.createElement('div'); hdr.className = 'date-card-hdr';
+    var lbl2 = document.createElement('span'); lbl2.className = 'date-card-lbl'; lbl2.textContent = formatDateLabel(iso);
+    var rm = document.createElement('button'); rm.className = 'date-card-rm'; rm.textContent = '×';
+    rm.onclick = (function(k) { return function() { delete selectedDates[k]; selectedDateStrs = Object.keys(selectedDates).sort(); renderCalendar(); }; })(iso);
+    hdr.appendChild(lbl2); hdr.appendChild(rm);
+
+    var body = document.createElement('div'); body.className = 'date-card-body';
+    var ss = document.createElement('select');
+    var es = document.createElement('select');
+    makeTimeOptions(ss, selectedDates[iso].start);
+    makeTimeOptions(es, selectedDates[iso].end);
+    (function(k, startSel, endSel) {
+      startSel.onchange = function() { selectedDates[k].start = parseInt(this.value); };
+      endSel.onchange   = function() { selectedDates[k].end   = parseInt(this.value); };
+    })(iso, ss, es);
+    var sep = document.createElement('span'); sep.className = 'date-card-sep'; sep.textContent = '~';
+    body.appendChild(ss); body.appendChild(sep); body.appendChild(es);
+    card.appendChild(hdr); card.appendChild(body);
+    wrap.appendChild(card);
   });
 }
 
@@ -489,18 +507,55 @@ function showLoading(v) {
 function generateLink() {
   if (!selectedDateStrs.length) { alert('날짜를 하나 이상 선택해주세요.'); return; }
   var title = document.getElementById('event-title').value.trim() || '일정 수집';
-  var timeStart = parseInt(document.getElementById('time-start').value);
-  var timeEnd   = parseInt(document.getElementById('time-end').value);
-  if (timeEnd <= timeStart) { alert('종료 시간은 시작 시간보다 늦어야 합니다.'); return; }
+  for (var i = 0; i < selectedDateStrs.length; i++) {
+    var iso = selectedDateStrs[i];
+    var dt = selectedDates[iso];
+    if (dt.end <= dt.start) { alert(formatDateLabel(iso) + ': 종료 시간은 시작 시간보다 늦어야 합니다.'); return; }
+  }
+  var daysData = selectedDateStrs.map(function(iso) {
+    return { date: iso, start: selectedDates[iso].start, end: selectedDates[iso].end };
+  });
   showLoading(true);
-  db.from('events').insert({
-    title: title, days: selectedDateStrs, time_start: timeStart, time_end: timeEnd
-  }).select().single().then(function(result) {
+
+  function onSuccess(id) {
     showLoading(false);
-    if (result.error) { alert('저장 실패: ' + result.error.message); return; }
-    var url = location.origin + location.pathname + '?event=' + result.data.id;
+    var url = location.origin + location.pathname + '?event=' + id;
     document.getElementById('link-url').textContent = url;
     document.getElementById('link-box').style.display = 'block';
+  }
+
+  // 1차 시도: jsonb 배열로 삽입
+  db.from('events').insert({
+    title: title,
+    days: daysData,
+    time_start: daysData[0].start,
+    time_end: daysData[0].end
+  }).select('id').single().then(function(result) {
+    console.log('insert result:', JSON.stringify(result));
+    if (!result.error && result.data && result.data.id) {
+      onSuccess(result.data.id);
+      return;
+    }
+    // 2차 시도: days를 JSON 문자열로 저장 (컬럼이 text/varchar인 경우)
+    console.warn('jsonb 삽입 실패, text fallback 시도:', result.error && result.error.message);
+    db.from('events').insert({
+      title: title,
+      days: JSON.stringify(daysData),
+      time_start: daysData[0].start,
+      time_end: daysData[0].end
+    }).select('id').single().then(function(r2) {
+      showLoading(false);
+      console.log('fallback result:', JSON.stringify(r2));
+      if (r2.error || !r2.data || !r2.data.id) {
+        alert('저장 실패: ' + (r2.error ? r2.error.message : '응답 없음') +
+              '\n\n브라우저 콘솔(F12)에서 상세 오류를 확인해주세요.');
+        return;
+      }
+      onSuccess(r2.data.id);
+    });
+  }).catch(function(err) {
+    showLoading(false);
+    alert('네트워크 오류: ' + err.message);
   });
 }
 
@@ -519,13 +574,20 @@ function loadEvent() {
     if (result.error || !result.data) { alert('이벤트를 찾을 수 없습니다.'); return; }
     var data = result.data;
     currentEventId = eventId;
-    selectedDateStrs = data.days; // ISO date strings
-    document.getElementById('time-start').value = data.time_start;
-    document.getElementById('time-end').value   = data.time_end;
+    // days 포맷: [{date, start, end}] 또는 구버전 ISO string 배열 대응
+    var daysArr = data.days || [];
+    // days가 JSON 문자열로 저장된 경우 파싱
+    if (typeof daysArr === 'string') { try { daysArr = JSON.parse(daysArr); } catch(e) { daysArr = []; } }
+    selectedDates = {};
+    if (daysArr.length && typeof daysArr[0] === 'object' && daysArr[0].date) {
+      daysArr.forEach(function(d) { selectedDates[d.date] = { start: d.start, end: d.end }; });
+    } else {
+      // 구버전 호환: ISO string 배열
+      daysArr.forEach(function(iso) { selectedDates[iso] = { start: data.time_start || 9, end: data.time_end || 18 }; });
+    }
+    selectedDateStrs = Object.keys(selectedDates).sort();
     document.getElementById('landing-title').textContent = data.title;
-    var dayLabels = selectedDateStrs.slice().sort().map(function(iso) {
-      return formatDateLabel(iso);
-    }).join(', ');
+    var dayLabels = selectedDateStrs.map(function(iso) { return formatDateLabel(iso); }).join(', ');
     document.getElementById('landing-days').textContent = dayLabels;
     goTo('s-landing');
   });
@@ -546,14 +608,17 @@ function validateLogin() {
 }
 
 function buildTimetable() {
-  var startH = parseInt(document.getElementById('time-start').value);
-  var endH   = parseInt(document.getElementById('time-end').value);
-  var hours = [];
-  for (var h = startH; h < endH; h++) hours.push(h);
   var dates = selectedDateStrs.slice().sort();
   selectedCells = new Set();
   var table = document.getElementById('timetable');
   table.innerHTML = '';
+
+  // 날짜별 시간 범위가 다를 수 있으므로 전체 시간 범위 union
+  var minH = 24, maxH = 0;
+  dates.forEach(function(iso) { var dt = selectedDates[iso]; if (dt.start < minH) minH = dt.start; if (dt.end > maxH) maxH = dt.end; });
+  var hours = [];
+  for (var h = minH; h < maxH; h++) hours.push(h);
+
   var thead = document.createElement('tr');
   var thE = document.createElement('th'); thE.style.width='38px'; thead.appendChild(thE);
   for (var di = 0; di < dates.length; di++) {
@@ -564,6 +629,7 @@ function buildTimetable() {
     thead.appendChild(th);
   }
   table.appendChild(thead);
+
   for (var hi = 0; hi < hours.length; hi++) {
     var hr = hours[hi];
     var tr = document.createElement('tr');
@@ -571,6 +637,14 @@ function buildTimetable() {
     for (var dj = 0; dj < dates.length; dj++) {
       (function(iso, h) {
         var td = document.createElement('td'); td.className='cell';
+        var dt = selectedDates[iso];
+        // 해당 날짜의 시간 범위 밖이면 비활성
+        if (h < dt.start || h >= dt.end) {
+          td.style.background = 'var(--bg)';
+          td.style.cursor = 'default';
+          tr.appendChild(td);
+          return;
+        }
         var key = iso + '-' + h;
         td.addEventListener('mousedown', function(e) {
           e.preventDefault(); isDragging=true; dragMode=selectedCells.has(key)?'remove':'add'; toggleCell(td,key);
@@ -640,14 +714,16 @@ function submitSchedule() {
 ══════════════════════════════════════ */
 
 function buildHostTimetable() {
-  var startH = parseInt(document.getElementById('time-start').value);
-  var endH   = parseInt(document.getElementById('time-end').value);
-  var hours = [];
-  for (var h = startH; h < endH; h++) hours.push(h);
   var dates = selectedDateStrs.slice().sort();
   hostSelectedCells = new Set();
   var table = document.getElementById('host-timetable');
   table.innerHTML = '';
+
+  var minH = 24, maxH = 0;
+  dates.forEach(function(iso) { var dt = selectedDates[iso]; if (dt.start < minH) minH = dt.start; if (dt.end > maxH) maxH = dt.end; });
+  var hours = [];
+  for (var h = minH; h < maxH; h++) hours.push(h);
+
   var thead = document.createElement('tr');
   var thE = document.createElement('th'); thE.style.width='38px'; thead.appendChild(thE);
   for (var di = 0; di < dates.length; di++) {
@@ -658,6 +734,7 @@ function buildHostTimetable() {
     thead.appendChild(th);
   }
   table.appendChild(thead);
+
   for (var hi = 0; hi < hours.length; hi++) {
     var hr = hours[hi];
     var tr = document.createElement('tr');
@@ -665,6 +742,13 @@ function buildHostTimetable() {
     for (var dj = 0; dj < dates.length; dj++) {
       (function(iso, h) {
         var td = document.createElement('td'); td.className='hcell';
+        var dt = selectedDates[iso];
+        if (h < dt.start || h >= dt.end) {
+          td.style.background = 'var(--bg)';
+          td.style.cursor = 'default';
+          tr.appendChild(td);
+          return;
+        }
         var key = iso + '-' + h;
         td.addEventListener('mousedown', function(e) {
           e.preventDefault(); hostIsDragging=true;
