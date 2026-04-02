@@ -71,9 +71,28 @@ body {
 .btn-primary:disabled { opacity: 0.4; cursor: default; }
 .btn-secondary { width: 100%; padding: 11px; background: transparent; color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 14px; font-family: inherit; cursor: pointer; margin-top: 8px; transition: background 0.15s; }
 .btn-secondary:hover { background: var(--bg); }
-.day-picker { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; }
-.day-btn { padding: 7px 13px; border-radius: 20px; font-size: 13px; font-family: inherit; cursor: pointer; border: 1px solid var(--border-strong); background: transparent; color: var(--text-muted); transition: all 0.15s; }
-.day-btn.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+/* ── 날짜 캘린더 피커 ── */
+.cal-wrap { margin-bottom: 1.25rem; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.cal-nav-btn { width: 28px; height: 28px; border: 1px solid var(--border-strong); border-radius: 50%; background: transparent; cursor: pointer; font-size: 15px; color: var(--text); display: flex; align-items: center; justify-content: center; }
+.cal-nav-btn:hover { background: var(--bg); }
+.cal-month { font-size: 14px; font-weight: 500; color: var(--text); }
+.cal-grid { padding: 8px; }
+.cal-dow { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
+.cal-dow span { text-align: center; font-size: 11px; color: var(--text-hint); padding: 3px 0; }
+.cal-dow span.sun { color: #dc2626; }
+.cal-dow span.sat { color: var(--accent); }
+.cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: 50%; cursor: pointer; color: var(--text); transition: background 0.1s; }
+.cal-day:hover:not(.past):not(.empty) { background: var(--bg); }
+.cal-day.empty { cursor: default; }
+.cal-day.past { color: var(--text-hint); cursor: default; }
+.cal-day.sun { color: #dc2626; }
+.cal-day.sat { color: var(--accent); }
+.cal-day.on { background: var(--accent); color: #fff !important; }
+.cal-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 1.25rem; min-height: 28px; }
+.cal-chip { display: inline-flex; align-items: center; gap: 5px; background: var(--accent-light); border: 1px solid var(--accent-border); border-radius: 20px; font-size: 12px; color: var(--accent); padding: 3px 10px; }
+.cal-chip-x { cursor: pointer; font-size: 14px; line-height: 1; color: var(--accent); }
 .sec-label { font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 8px; }
 .link-box { display: none; margin-top: 1rem; padding: 12px 14px; background: var(--accent-light); border: 1px solid var(--accent-border); border-radius: var(--radius); }
 .link-label { font-size: 11px; color: var(--accent); font-weight: 500; margin-bottom: 5px; }
@@ -154,11 +173,24 @@ table.host-tt td.hcell.on { background: #1e3a5f; border-color: #1e3a5f; }
     <div class="hdr">
       <div class="hdr-badge">관리자</div>
       <h2>일정 수집 설정</h2>
-      <p>참가자에게 공유할 요일과 시간을 설정하세요</p>
+      <p>참가자에게 공유할 날짜와 시간을 설정하세요</p>
     </div>
     <div class="body">
-      <div class="sec-label">선택 가능 요일</div>
-      <div class="day-picker" id="day-picker"></div>
+      <div class="sec-label">선택 가능 날짜</div>
+      <div class="cal-wrap">
+        <div class="cal-nav">
+          <button class="cal-nav-btn" onclick="changeCalMonth(-1)">‹</button>
+          <span class="cal-month" id="cal-month-label"></span>
+          <button class="cal-nav-btn" onclick="changeCalMonth(1)">›</button>
+        </div>
+        <div class="cal-grid">
+          <div class="cal-dow">
+            <span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span>
+          </div>
+          <div class="cal-days" id="cal-days"></div>
+        </div>
+      </div>
+      <div class="cal-chips" id="cal-chips"></div>
       <div class="sec-label">시간 범위</div>
       <div class="grid2">
         <div class="fg">
@@ -338,8 +370,6 @@ table.host-tt td.hcell.on { background: #1e3a5f; border-color: #1e3a5f; }
 </div>
 
 <script>
-var DAYS  = ['월','화','수','목','금'];
-var DATES = ['4/7','4/8','4/9','4/10','4/11'];
 var AVATAR_COLORS = [
   {bg:'#E6F1FB',color:'#0C447C'},
   {bg:'#E1F5EE',color:'#085041'},
@@ -347,7 +377,19 @@ var AVATAR_COLORS = [
   {bg:'#FAECE7',color:'#712B13'},
   {bg:'#EEEDFE',color:'#3C3489'},
 ];
-var selectedDays = [0, 2, 4];
+
+// 날짜 기반 데이터 (ISO string 'YYYY-MM-DD' 배열)
+var selectedDateStrs = []; // 관리자가 선택한 날짜들
+var calViewYear, calViewMonth;
+(function() {
+  var now = new Date();
+  calViewYear = now.getFullYear();
+  calViewMonth = now.getMonth();
+})();
+
+// 참가자 타임테이블용: selectedDateStrs를 인덱스 배열로 변환해서 사용
+// slot key = "dateIdx-hour" (dateIdx = selectedDateStrs의 index)
+
 var selectedCells = new Set();
 var isDragging = false;
 var dragMode = null;
@@ -359,6 +401,81 @@ var hostIsDragging = false;
 var hostDragMode = null;
 var collectedResponses = [];
 
+function isoDate(y, m, d) {
+  return y + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+}
+function formatDateLabel(iso) {
+  var parts = iso.split('-');
+  var y=parseInt(parts[0]), m=parseInt(parts[1])-1, d=parseInt(parts[2]);
+  var date = new Date(y, m, d);
+  var days = ['일','월','화','수','목','금','토'];
+  return (m+1) + '/' + d + ' (' + days[date.getDay()] + ')';
+}
+
+function changeCalMonth(dir) {
+  calViewMonth += dir;
+  if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
+  if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; }
+  renderCalendar();
+}
+
+function renderCalendar() {
+  var monthNames = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  document.getElementById('cal-month-label').textContent = calViewYear + '년 ' + monthNames[calViewMonth];
+  var grid = document.getElementById('cal-days');
+  grid.innerHTML = '';
+  var today = new Date(); today.setHours(0,0,0,0);
+  var firstDow = new Date(calViewYear, calViewMonth, 1).getDay();
+  var lastDay = new Date(calViewYear, calViewMonth+1, 0).getDate();
+  for (var i=0; i<firstDow; i++) {
+    var emp = document.createElement('div'); emp.className='cal-day empty'; grid.appendChild(emp);
+  }
+  for (var d=1; d<=lastDay; d++) {
+    var iso = isoDate(calViewYear, calViewMonth, d);
+    var dateObj = new Date(calViewYear, calViewMonth, d);
+    var dow = dateObj.getDay();
+    var isPast = dateObj < today;
+    var el = document.createElement('div');
+    var cls = 'cal-day';
+    if (isPast) cls += ' past';
+    else if (dow===0) cls += ' sun';
+    else if (dow===6) cls += ' sat';
+    if (selectedDateStrs.indexOf(iso) !== -1) cls += ' on';
+    el.className = cls;
+    el.textContent = d;
+    if (!isPast) {
+      (function(isoKey) {
+        el.onclick = function() { toggleCalDate(isoKey); };
+      })(iso);
+    }
+    grid.appendChild(el);
+  }
+  renderCalChips();
+}
+
+function toggleCalDate(iso) {
+  var idx = selectedDateStrs.indexOf(iso);
+  if (idx !== -1) selectedDateStrs.splice(idx, 1);
+  else selectedDateStrs.push(iso);
+  selectedDateStrs.sort();
+  renderCalendar();
+}
+
+function renderCalChips() {
+  var wrap = document.getElementById('cal-chips');
+  wrap.innerHTML = '';
+  for (var i=0; i<selectedDateStrs.length; i++) {
+    var iso = selectedDateStrs[i];
+    var chip = document.createElement('span');
+    chip.className = 'cal-chip';
+    chip.innerHTML = formatDateLabel(iso) + '<span class="cal-chip-x" data-iso="'+iso+'">×</span>';
+    wrap.appendChild(chip);
+  }
+  wrap.querySelectorAll('.cal-chip-x').forEach(function(x) {
+    x.onclick = function() { toggleCalDate(this.getAttribute('data-iso')); };
+  });
+}
+
 function goTo(id) {
   var screens = document.querySelectorAll('.screen');
   for (var i = 0; i < screens.length; i++) screens[i].classList.remove('active');
@@ -369,34 +486,15 @@ function showLoading(v) {
   document.getElementById('loading').classList.toggle('show', v);
 }
 
-function renderDayPicker() {
-  var el = document.getElementById('day-picker');
-  el.innerHTML = '';
-  for (var i = 0; i < DAYS.length; i++) {
-    (function(idx) {
-      var btn = document.createElement('button');
-      btn.className = 'day-btn' + (selectedDays.indexOf(idx) !== -1 ? ' on' : '');
-      btn.textContent = DAYS[idx] + '요일';
-      btn.onclick = function() {
-        var pos = selectedDays.indexOf(idx);
-        if (pos !== -1) selectedDays.splice(pos, 1);
-        else selectedDays.push(idx);
-        renderDayPicker();
-      };
-      el.appendChild(btn);
-    })(i);
-  }
-}
-
 function generateLink() {
-  if (!selectedDays.length) { alert('요일을 하나 이상 선택해주세요.'); return; }
+  if (!selectedDateStrs.length) { alert('날짜를 하나 이상 선택해주세요.'); return; }
   var title = document.getElementById('event-title').value.trim() || '일정 수집';
   var timeStart = parseInt(document.getElementById('time-start').value);
   var timeEnd   = parseInt(document.getElementById('time-end').value);
   if (timeEnd <= timeStart) { alert('종료 시간은 시작 시간보다 늦어야 합니다.'); return; }
   showLoading(true);
   db.from('events').insert({
-    title: title, days: selectedDays, time_start: timeStart, time_end: timeEnd
+    title: title, days: selectedDateStrs, time_start: timeStart, time_end: timeEnd
   }).select().single().then(function(result) {
     showLoading(false);
     if (result.error) { alert('저장 실패: ' + result.error.message); return; }
@@ -414,21 +512,21 @@ function copyLink() {
 function loadEvent() {
   var params = new URLSearchParams(location.search);
   var eventId = params.get('event');
-  if (!eventId) return;
+  if (!eventId) { renderCalendar(); return; }
   showLoading(true);
   db.from('events').select('*').eq('id', eventId).single().then(function(result) {
     showLoading(false);
     if (result.error || !result.data) { alert('이벤트를 찾을 수 없습니다.'); return; }
     var data = result.data;
     currentEventId = eventId;
-    selectedDays = data.days;
+    selectedDateStrs = data.days; // ISO date strings
     document.getElementById('time-start').value = data.time_start;
     document.getElementById('time-end').value   = data.time_end;
     document.getElementById('landing-title').textContent = data.title;
-    var dayNames = data.days.slice().sort(function(a,b){return a-b;}).map(function(i) {
-      return DAYS[i] + '(' + DATES[i] + ')';
+    var dayLabels = selectedDateStrs.slice().sort().map(function(iso) {
+      return formatDateLabel(iso);
     }).join(', ');
-    document.getElementById('landing-days').textContent = dayNames;
+    document.getElementById('landing-days').textContent = dayLabels;
     goTo('s-landing');
   });
 }
@@ -452,15 +550,17 @@ function buildTimetable() {
   var endH   = parseInt(document.getElementById('time-end').value);
   var hours = [];
   for (var h = startH; h < endH; h++) hours.push(h);
-  var days = selectedDays.slice().sort(function(a,b){return a-b;});
+  var dates = selectedDateStrs.slice().sort();
   selectedCells = new Set();
   var table = document.getElementById('timetable');
   table.innerHTML = '';
   var thead = document.createElement('tr');
   var thE = document.createElement('th'); thE.style.width='38px'; thead.appendChild(thE);
-  for (var di = 0; di < days.length; di++) {
+  for (var di = 0; di < dates.length; di++) {
     var th = document.createElement('th');
-    th.innerHTML = DAYS[days[di]] + '<span>' + DATES[days[di]] + '</span>';
+    var label = formatDateLabel(dates[di]);
+    var parts = label.split(' ');
+    th.innerHTML = parts[0] + '<span>' + (parts[1]||'') + '</span>';
     thead.appendChild(th);
   }
   table.appendChild(thead);
@@ -468,16 +568,16 @@ function buildTimetable() {
     var hr = hours[hi];
     var tr = document.createElement('tr');
     var tdL = document.createElement('td'); tdL.className='tl'; tdL.textContent=hr+':00'; tr.appendChild(tdL);
-    for (var dj = 0; dj < days.length; dj++) {
-      (function(d, h) {
+    for (var dj = 0; dj < dates.length; dj++) {
+      (function(iso, h) {
         var td = document.createElement('td'); td.className='cell';
-        var key = d + '-' + h;
+        var key = iso + '-' + h;
         td.addEventListener('mousedown', function(e) {
           e.preventDefault(); isDragging=true; dragMode=selectedCells.has(key)?'remove':'add'; toggleCell(td,key);
         });
         td.addEventListener('mouseenter', function() { if(isDragging) toggleCell(td,key); });
         tr.appendChild(td);
-      })(days[dj], hr);
+      })(dates[dj], hr);
     }
     table.appendChild(tr);
   }
@@ -506,16 +606,19 @@ function submitSchedule() {
   db.from('responses').insert({ event_id: currentEventId, org: org, name: name, slots: slots }).then(function(result) {
     showLoading(false);
     if (result.error) { alert('제출 실패: ' + result.error.message); return; }
-    var byDay = {};
+    var byDate = {};
     for (var i=0;i<slots.length;i++) {
-      var parts=slots[i].split('-'); var d=parts[0]; var h=parseInt(parts[1]);
-      if(!byDay[d]) byDay[d]=[];
-      byDay[d].push(h);
+      var parts=slots[i].split('-'); 
+      // key format: YYYY-MM-DD-hour
+      var h=parseInt(parts[parts.length-1]);
+      var iso=parts.slice(0,3).join('-');
+      if(!byDate[iso]) byDate[iso]=[];
+      byDate[iso].push(h);
     }
     var chips = document.getElementById('done-chips'); chips.innerHTML='';
-    var dkeys = Object.keys(byDay).sort();
+    var dkeys = Object.keys(byDate).sort();
     for (var di=0;di<dkeys.length;di++) {
-      var dk=dkeys[di]; var hrs=byDay[dk].sort(function(a,b){return a-b;});
+      var dk=dkeys[di]; var hrs=byDate[dk].sort(function(a,b){return a-b;});
       var ranges=[]; var s=hrs[0]; var p=hrs[0];
       for (var ri=1;ri<hrs.length;ri++) {
         if(hrs[ri]===p+1){p=hrs[ri];}
@@ -524,7 +627,7 @@ function submitSchedule() {
       ranges.push([s,p]);
       for (var rj=0;rj<ranges.length;rj++) {
         var c=document.createElement('span'); c.className='chip';
-        c.textContent=DAYS[parseInt(dk)]+' '+ranges[rj][0]+':00-'+(ranges[rj][1]+1)+':00';
+        c.textContent=formatDateLabel(dk)+' '+ranges[rj][0]+':00-'+(ranges[rj][1]+1)+':00';
         chips.appendChild(c);
       }
     }
@@ -541,15 +644,17 @@ function buildHostTimetable() {
   var endH   = parseInt(document.getElementById('time-end').value);
   var hours = [];
   for (var h = startH; h < endH; h++) hours.push(h);
-  var days = selectedDays.slice().sort(function(a,b){return a-b;});
+  var dates = selectedDateStrs.slice().sort();
   hostSelectedCells = new Set();
   var table = document.getElementById('host-timetable');
   table.innerHTML = '';
   var thead = document.createElement('tr');
   var thE = document.createElement('th'); thE.style.width='38px'; thead.appendChild(thE);
-  for (var di = 0; di < days.length; di++) {
+  for (var di = 0; di < dates.length; di++) {
     var th = document.createElement('th');
-    th.innerHTML = DAYS[days[di]] + '<span>' + DATES[days[di]] + '</span>';
+    var label = formatDateLabel(dates[di]);
+    var parts = label.split(' ');
+    th.innerHTML = parts[0] + '<span>' + (parts[1]||'') + '</span>';
     thead.appendChild(th);
   }
   table.appendChild(thead);
@@ -557,10 +662,10 @@ function buildHostTimetable() {
     var hr = hours[hi];
     var tr = document.createElement('tr');
     var tdL = document.createElement('td'); tdL.className='tl'; tdL.textContent=hr+':00'; tr.appendChild(tdL);
-    for (var dj = 0; dj < days.length; dj++) {
-      (function(d, h) {
+    for (var dj = 0; dj < dates.length; dj++) {
+      (function(iso, h) {
         var td = document.createElement('td'); td.className='hcell';
-        var key = d + '-' + h;
+        var key = iso + '-' + h;
         td.addEventListener('mousedown', function(e) {
           e.preventDefault(); hostIsDragging=true;
           hostDragMode = hostSelectedCells.has(key) ? 'remove' : 'add';
@@ -568,7 +673,7 @@ function buildHostTimetable() {
         });
         td.addEventListener('mouseenter', function() { if(hostIsDragging) toggleHostCell(td,key); });
         tr.appendChild(td);
-      })(days[dj], hr);
+      })(dates[dj], hr);
     }
     table.appendChild(tr);
   }
@@ -587,7 +692,7 @@ document.addEventListener('mouseup', function() { hostIsDragging=false; hostDrag
 
 // 관리자 화면에서 스케줄러로 이동할 때 타임테이블 빌드
 document.querySelector('[onclick="goTo(\'s-scheduler-host\')"]').onclick = function() {
-  if (!selectedDays.length) { alert('먼저 요일을 선택해주세요.'); return; }
+  if (!selectedDateStrs.length) { alert('먼저 날짜를 선택해주세요.'); return; }
   buildHostTimetable();
   goTo('s-scheduler-host');
 };
@@ -640,9 +745,11 @@ function renderResponseList() {
     var slotsEl = document.createElement('div'); slotsEl.className='resp-slots';
     var slots = resp.slots || [];
     slots.sort().slice(0,5).forEach(function(s) {
-      var parts=s.split('-'); var d=parseInt(parts[0]); var h=parseInt(parts[1]);
+      var sParts=s.split('-'); 
+      var h=parseInt(sParts[sParts.length-1]);
+      var iso=sParts.slice(0,3).join('-');
       var tag=document.createElement('span'); tag.className='resp-slot';
-      tag.textContent=DAYS[d]+' '+h+':00';
+      tag.textContent=formatDateLabel(iso)+' '+h+':00';
       slotsEl.appendChild(tag);
     });
     if (slots.length>5) {
@@ -660,9 +767,8 @@ function renderResponseList() {
 function runScheduler() {
   // 주최자 가능 슬롯을 정렬 (요일-시간 순)
   var hostSlots = Array.from(hostSelectedCells).sort(function(a,b) {
-    var ap=a.split('-'); var bp=b.split('-');
-    if(ap[0]!==bp[0]) return parseInt(ap[0])-parseInt(bp[0]);
-    return parseInt(ap[1])-parseInt(bp[1]);
+    // ISO date keys sort lexicographically correctly
+    return a < b ? -1 : a > b ? 1 : 0;
   });
 
   var assigned = []; // {slot, resp}
@@ -702,29 +808,28 @@ function renderResult(assigned, unmatched) {
     el.innerHTML='<div class="info-card">응답 데이터가 없습니다.</div>'; return;
   }
 
-  // 요일별 그룹핑
-  var byDay = {};
+  // 날짜별 그룹핑
+  var byDate = {};
   for (var i=0;i<assigned.length;i++) {
     var parts = assigned[i].slot.split('-');
-    var d = parts[0];
-    if (!byDay[d]) byDay[d]=[];
-    byDay[d].push(assigned[i]);
+    var iso = parts.slice(0,3).join('-');
+    if (!byDate[iso]) byDate[iso]=[];
+    byDate[iso].push(assigned[i]);
   }
 
-  var dkeys = Object.keys(byDay).sort(function(a,b){return parseInt(a)-parseInt(b);});
+  var dkeys = Object.keys(byDate).sort();
   for (var di=0;di<dkeys.length;di++) {
     var dk = dkeys[di];
-    var dayIdx = parseInt(dk);
     var section = document.createElement('div'); section.className='result-section';
     var label = document.createElement('div'); label.className='result-day-label';
-    label.textContent = DAYS[dayIdx] + '요일 (' + DATES[dayIdx] + ')';
+    label.textContent = formatDateLabel(dk);
     section.appendChild(label);
 
-    var items = byDay[dk];
+    var items = byDate[dk];
     for (var ii=0;ii<items.length;ii++) {
       var item = items[ii];
       var slotParts = item.slot.split('-');
-      var h = parseInt(slotParts[1]);
+      var h = parseInt(slotParts[slotParts.length-1]);
       var ac = AVATAR_COLORS[collectedResponses.indexOf(item.resp) % AVATAR_COLORS.length];
       var initials = item.resp.name ? item.resp.name.slice(0,2) : '??';
 
@@ -765,7 +870,7 @@ function renderResult(assigned, unmatched) {
   }
 }
 
-renderDayPicker();
+renderCalendar();
 loadEvent();
 </script>
 </body>
