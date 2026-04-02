@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>일정 수집</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+  /* =====================================================
+     ★ 여기만 수정하세요 ★
+     Supabase 대시보드 Settings → API Keys 에서 복사
+  ===================================================== */
+  const SUPABASE_URL = 'https://zxckphktjheeszfuwmbl.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_gedCZLuxc6ygIV-AhIVeiA_zcALV6Cs';
+  /* ===================================================== */
+
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f5f3;
+    --surface: #ffffff;
+    --border: #e4e4e0;
+    --border-strong: #d0d0ca;
+    --text: #1a1a18;
+    --text-muted: #6b6b65;
+    --text-hint: #9e9e96;
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --accent-border: #bfdbfe;
+    --success-bg: #f0fdf4;
+    --success-text: #166534;
+    --warn-bg: #fffbeb;
+    --warn-text: #92400e;
+    --danger: #dc2626;
+    --radius: 10px;
+    --radius-lg: 14px;
+  }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 460px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  /* ── screens ── */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ── header ── */
+  .hdr {
+    text-align: center;
+    padding: 2rem 1.5rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .hdr-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--accent-light);
+    color: var(--accent);
+    margin-bottom: 10px;
+    letter-spacing: 0.02em;
+  }
+  .hdr h2 { font-size: 19px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
+  .hdr p  { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+  /* ── body padding ── */
+  .body { padding: 1.5rem; }
+
+  /* ── step bar ── */
+  .step-bar {
+    display: flex;
+    gap: 5px;
+    padding: 1rem 1.5rem 0;
+  }
+  .step-seg {
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .step-seg.done { background: var(--accent); }
+
+  /* ── form ── */
+  .fg { margin-bottom: 1rem; }
+  .fg label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+  .fg input, .fg select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .fg input:focus, .fg select:focus { border-color: var(--accent); }
+  .err { font-size: 12px; color: var(--danger); margin-top: 4px; display: none; }
+
+  /* ── buttons ── */
+  .btn-primary {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    margin-top: 4px;
+  }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-primary:active { opacity: 0.75; }
+  .btn-primary:disabled { opacity: 0.4; cursor: default; }
+  .btn-secondary {
+    width: 100%;
+    padding: 11px;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.15s;
+  }
+  .btn-secondary:hover { background: var(--bg); }
+
+  /* ── day picker ── */
+  .day-picker { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .day-btn {
+    padding: 7px 13px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    border: 1px solid var(--border-strong);
+    background: transparent;
+    color: var(--text-muted);
+    transition: all 0.15s;
+  }
+  .day-btn.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ── section label ── */
+  .sec-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+    margin-bottom: 8px;
+  }
+
+  /* ── link box ── */
+  .link-box {
+    display: none;
+    margin-top: 1rem;
+    padding: 12px 14px;
+    background: var(--accent-light);
+    border: 1px solid var(--accent-border);
+    border-radius: var(--radius);
+  }
+  .link-box .link-label { font-size: 11px; color: var(--accent); font-weight: 500; margin-bottom: 5px; }
+  .link-box .link-url  { font-size: 12px; color: var(--accent); word-break: break-all; }
+
+  /* ── info card ── */
+  .info-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+  }
+  .info-card strong { color: var(--text); }
+
+  /* ── timetable ── */
+  .timetable-wrap { overflow-x: auto; padding-bottom: 4px; }
+  table.tt {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  table.tt th {
+    padding: 6px 4px 10px;
+    text-align: center;
+    font-weight: 500;
+    color: var(--text);
+  }
+  table.tt th span { display: block; font-size: 11px; font-weight: 400; color: var(--text-hint); margin-top: 1px; }
+  table.tt td.tl {
+    font-size: 11px;
+    color: var(--text-hint);
+    text-align: right;
+    padding-right: 8px;
+    white-space: nowrap;
+    width: 38px;
+    vertical-align: middle;
+  }
+  table.tt td.cell {
+    height: 38px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    background: var(--surface);
+    transition: background 0.1s;
+  }
+  table.tt td.cell:hover { background: var(--accent-light); }
+  table.tt td.cell.on   { background: var(--accent); border-color: #1d4ed8; }
+
+  .drag-hint { font-size: 12px; color: var(--text-hint); text-align: center; margin-bottom: 10px; }
+  .sel-count { font-size: 13px; color: var(--text-muted); text-align: center; margin: 12px 0 8px; }
+
+  /* ── done ── */
+  .done-wrap { text-align: center; padding: 2.5rem 1.5rem; }
+  .done-icon {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: var(--success-bg);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.25rem;
+    font-size: 24px;
+  }
+  .done-wrap h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .done-wrap p  { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  .chip-wrap { margin-top: 1.25rem; }
+  .chip {
+    display: inline-block;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 12px;
+    padding: 4px 12px;
+    margin: 3px;
+    color: var(--text-muted);
+  }
+
+  /* ── warn / tip ── */
+  .tip  { background: var(--accent-light); border-radius: var(--radius); padding: 10px 13px; font-size: 12px; color: var(--accent); margin: 8px 0; line-height: 1.6; }
+  .warn { background: var(--warn-bg);      border-radius: var(--radius); padding: 10px 13px; font-size: 12px; color: var(--warn-text); margin: 8px 0; line-height: 1.6; }
+
+  /* ── two-col grid ── */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.25rem; }
+  .grid2 .fg { margin-bottom: 0; }
+
+  /* ── loading overlay ── */
+  .loading {
+    display: none;
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.8);
+    align-items: center; justify-content: center;
+    border-radius: var(--radius-lg);
+    font-size: 13px; color: var(--text-muted);
+    z-index: 10;
+  }
+  .loading.show { display: flex; }
+  .app { position: relative; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="loading" id="loading">처리 중...</div>
+
+  <!-- ════════════════════════════════
+       SCREEN 0 : 관리자 설정
+  ════════════════════════════════ -->
+  <div class="screen active" id="s-admin">
+    <div class="hdr">
+      <div class="hdr-badge">관리자</div>
+      <h2>일정 수집 설정</h2>
+      <p>참가자에게 공유할 요일과 시간을 설정하세요</p>
+    </div>
+    <div class="body">
+      <div class="sec-label">선택 가능 요일</div>
+      <div class="day-picker" id="day-picker"></div>
+
+      <div class="sec-label">시간 범위</div>
+      <div class="grid2">
+        <div class="fg">
+          <label>시작</label>
+          <select id="time-start">
+            <option value="8">08:00</option>
+            <option value="9" selected>09:00</option>
+            <option value="10">10:00</option>
+            <option value="11">11:00</option>
+            <option value="12">12:00</option>
+            <option value="13">13:00</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>종료</label>
+          <select id="time-end">
+            <option value="15">15:00</option>
+            <option value="16">16:00</option>
+            <option value="17">17:00</option>
+            <option value="18" selected>18:00</option>
+            <option value="19">19:00</option>
+            <option value="20">20:00</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label>제목</label>
+        <input type="text" id="event-title" value="1분기 팀 미팅" />
+      </div>
+
+      <button class="btn-primary" onclick="generateLink()">링크 생성하기</button>
+
+      <div class="link-box" id="link-box">
+        <div class="link-label">참가자 공유 링크</div>
+        <div class="link-url" id="link-url"></div>
+        <button class="btn-secondary" style="margin-top:10px;font-size:13px;" onclick="copyLink()">링크 복사</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       SCREEN 1 : 참가자 랜딩
+  ════════════════════════════════ -->
+  <div class="screen" id="s-landing">
+    <div class="hdr">
+      <div class="hdr-badge">일정 수집</div>
+      <h2 id="landing-title">미팅 일정 수집</h2>
+      <p>가능한 시간을 선택해 주세요.<br>다른 참가자의 응답은 공개되지 않습니다.</p>
+    </div>
+    <div class="body">
+      <div class="info-card">
+        선택 가능 요일: <strong id="landing-days"></strong>
+      </div>
+      <button class="btn-primary" onclick="goTo('s-login')">참여하기</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       SCREEN 2 : 정보 입력
+  ════════════════════════════════ -->
+  <div class="screen" id="s-login">
+    <div class="step-bar">
+      <div class="step-seg done"></div>
+      <div class="step-seg"></div>
+    </div>
+    <div class="hdr">
+      <h2>참가자 정보 입력</h2>
+      <p>소속과 이름을 입력해 주세요</p>
+    </div>
+    <div class="body">
+      <div class="fg">
+        <label>소속</label>
+        <input type="text" id="u-org" placeholder="예: 마케팅팀 / 외부 파트너사" />
+        <div class="err" id="err-org">소속을 입력해 주세요</div>
+      </div>
+      <div class="fg">
+        <label>이름</label>
+        <input type="text" id="u-name" placeholder="홍길동" />
+        <div class="err" id="err-name">이름을 입력해 주세요</div>
+      </div>
+      <button class="btn-primary" onclick="validateLogin()">다음</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       SCREEN 3 : 시간 선택
+  ════════════════════════════════ -->
+  <div class="screen" id="s-select">
+    <div class="step-bar">
+      <div class="step-seg done"></div>
+      <div class="step-seg done"></div>
+    </div>
+    <div class="hdr">
+      <h2>가능한 시간 선택</h2>
+      <p id="greeting"></p>
+    </div>
+    <div class="body">
+      <div class="drag-hint">클릭하거나 드래그해서 가능한 시간을 선택하세요</div>
+      <div class="timetable-wrap">
+        <table class="tt" id="timetable"></table>
+      </div>
+      <div class="sel-count" id="sel-count">0개 시간대 선택됨</div>
+      <button class="btn-primary" onclick="submitSchedule()">제출하기</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       SCREEN 4 : 완료
+  ════════════════════════════════ -->
+  <div class="screen" id="s-done">
+    <div class="done-wrap">
+      <div class="done-icon">✓</div>
+      <h3>제출 완료!</h3>
+      <p>응답이 성공적으로 접수되었어요.<br>결과는 주최자에게 전달됩니다.</p>
+      <div class="chip-wrap" id="done-chips"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ──────────────────────────────────────────
+   상수 & 상태
+────────────────────────────────────────── */
+const DAYS  = ['월','화','수','목','금'];
+const DATES = ['4/7','4/8','4/9','4/10','4/11'];
+
+let selectedDays = [0, 2, 4];
+let selectedCells = new Set();
+let isDragging = false;
+let dragMode   = null;
+let currentEventId = null;
+
+/* ──────────────────────────────────────────
+   유틸
+────────────────────────────────────────── */
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function showLoading(v) {
+  document.getElementById('loading').classList.toggle('show', v);
+}
+
+/* ──────────────────────────────────────────
+   요일 피커
+────────────────────────────────────────── */
+function renderDayPicker() {
+  const el = document.getElementById('day-picker');
+  el.innerHTML = '';
+  DAYS.forEach((d, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'day-btn' + (selectedDays.includes(i) ? ' on' : '');
+    btn.textContent = d + '요일';
+    btn.onclick = () => {
+      if (selectedDays.includes(i)) selectedDays = selectedDays.filter(x => x !== i);
+      else selectedDays.push(i);
+      renderDayPicker();
+    };
+    el.appendChild(btn);
+  });
+}
+
+/* ──────────────────────────────────────────
+   관리자: 링크 생성 → Supabase 저장
+────────────────────────────────────────── */
+async function generateLink() {
+  const title = document.getElementById('event-title').value;
+  const { data, error } = await db
+    .from('events')
+    .insert({
+      title,
+      days: selectedDays,
+      time_start: parseInt(document.getElementById('time-start').value),
+      time_end: parseInt(document.getElementById('time-end').value)
+    })
+    .select()
+    .single();
+
+  if (error) { alert('저장 실패: ' + error.message); return; }
+
+  const url = location.origin + '?event=' + data.id;
+  document.getElementById('link-text').textContent = url;
+  document.getElementById('link-box').style.display = 'block';
+}
+
+/* ──────────────────────────────────────────
+   참가자: 페이지 로드 시 이벤트 불러오기
+────────────────────────────────────────── */
+async function loadEvent() {
+  const params = new URLSearchParams(location.search);
+  const eventId = params.get('event');
+  if (!eventId) return;
+
+  const { data } = await db
+    .from('events')
+    .select('*')
+    .eq('id', eventId)
+    .single();
+
+  if (!data) return;
+  selectedDays = data.days;
+  document.getElementById('time-start').value = data.time_start;
+  document.getElementById('time-end').value = data.time_end;
+  document.getElementById('landing-title').textContent = data.title;
+  document.getElementById('landing-days').textContent =
+    data.days.sort().map(i => ['월','화','수','목','금'][i]).join(', ');
+  goTo('s-landing');
+}
+
+loadEvent();
+
+/* ──────────────────────────────────────────
+   정보 입력 검증
+────────────────────────────────────────── */
+function validateLogin() {
+  const org  = document.getElementById('u-org').value.trim();
+  const name = document.getElementById('u-name').value.trim();
+  let ok = true;
+  document.getElementById('err-org').style.display  = org  ? 'none' : 'block'; if (!org)  ok = false;
+  document.getElementById('err-name').style.display = name ? 'none' : 'block'; if (!name) ok = false;
+  if (!ok) return;
+  document.getElementById('greeting').textContent = org + ' ' + name + '님, 가능한 시간을 모두 선택해 주세요';
+  buildTimetable();
+  goTo('s-select');
+}
+
+/* ──────────────────────────────────────────
+   시간표 생성
+────────────────────────────────────────── */
+function buildTimetable() {
+  const startH = parseInt(document.getElementById('time-start').value);
+  const endH   = parseInt(document.getElementById('time-end').value);
+  const hours  = [];
+  for (let h = startH; h < endH; h++) hours.push(h);
+  const days = [...selectedDays].sort();
+  selectedCells.clear();
+
+  const table = document.getElementById('timetable');
+  table.innerHTML = '';
+
+  // 헤더
+  const thead = document.createElement('tr');
+  const thE = document.createElement('th'); thE.style.width = '38px'; thead.appendChild(thE);
+  days.forEach(i => {
+    const th = document.createElement('th');
+    th.innerHTML = DAYS[i] + '<span>' + DATES[i] + '</span>';
+    thead.appendChild(th);
+  });
+  table.appendChild(thead);
+
+  // 행
+  hours.forEach(h => {
+    const tr = document.createElement('tr');
+    const tdL = document.createElement('td'); tdL.className = 'tl'; tdL.textContent = h + ':00'; tr.appendChild(tdL);
+    days.forEach(d => {
+      const td  = document.createElement('td');
+      td.className = 'cell';
+      const key = d + '-' + h;
+      td.addEventListener('mousedown', e => { e.preventDefault(); isDragging = true; dragMode = selectedCells.has(key) ? 'remove' : 'add'; toggleCell(td, key); });
+      td.addEventListener('mouseenter', () => { if (isDragging) toggleCell(td, key); });
+      tr.appendChild(td);
+    });
+    table.appendChild(tr);
+  });
+
+  updateCount();
+}
+
+function toggleCell(td, key) {
+  if (dragMode === 'add') { selectedCells.add(key); td.classList.add('on'); }
+  else                    { selectedCells.delete(key); td.classList.remove('on'); }
+  updateCount();
+}
+function updateCount() {
+  document.getElementById('sel-count').textContent = selectedCells.size + '개 시간대 선택됨';
+}
+document.addEventListener('mouseup', () => { isDragging = false; dragMode = null; });
+
+/* ──────────────────────────────────────────
+   제출 → Supabase 저장
+────────────────────────────────────────── */
+async function submitSchedule() {
+  if (selectedCells.size === 0) {
+    document.getElementById('sel-summary').textContent = '하나 이상 선택해 주세요';
+    return;
+  }
+  const params = new URLSearchParams(location.search);
+  const eventId = params.get('event');
+
+  const { error } = await db
+    .from('responses')
+    .insert({
+      event_id: eventId,
+      org: document.getElementById('u-org').value,
+      name: document.getElementById('u-name').value,
+      slots: Array.from(selectedCells)
+    });
+
+  if (error) { alert('제출 실패: ' + error.message); return; }
+  goTo('s-done');
+}
+
+  // 완료 화면 칩
+  const byDay = {};
+  selectedCells.forEach(k => {
+    const [d, h] = k.split('-');
+    if (!byDay[d]) byDay[d] = [];
+    byDay[d].push(parseInt(h));
+  });
+  const chips = document.getElementById('done-chips');
+  chips.innerHTML = '';
+  Object.keys(byDay).sort().forEach(d => {
+    const hrs = byDay[d].sort((a,b) => a-b);
+    const ranges = []; let s = hrs[0], p = hrs[0];
+    for (let i = 1; i < hrs.length; i++) { if (hrs[i] === p+1) p = hrs[i]; else { ranges.push([s,p]); s=hrs[i]; p=hrs[i]; } }
+    ranges.push([s, p]);
+    ranges.forEach(([a,b]) => {
+      const c = document.createElement('span'); c.className = 'chip';
+      c.textContent = DAYS[parseInt(d)] + ' ' + a + ':00–' + (b+1) + ':00';
+      chips.appendChild(c);
+    });
+  });
+  goTo('s-done');
+}
+
+/* ──────────────────────────────────────────
+   초기화
+────────────────────────────────────────── */
+renderDayPicker();
+loadEvent();
+</script>
+</body>
+</html>
