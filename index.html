@@ -135,6 +135,8 @@ table.tt td.cell.on { background: var(--accent); border-color: #1d4ed8; }
 .scheduler-btn-wrap { margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem; }
 .btn-scheduler { width: 100%; padding: 12px; background: #1e3a5f; color: #fff; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 500; font-family: inherit; cursor: pointer; transition: opacity 0.15s; }
 .btn-scheduler:hover { opacity: 0.88; }
+.btn-ics { width: 100%; padding: 12px; background: #0f6e56; color: #fff; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 500; font-family: inherit; cursor: pointer; transition: opacity 0.15s; margin-top: 1rem; }
+.btn-ics:hover { opacity: 0.88; }
 
 /* 주최자 타임테이블 (스케줄러용) */
 .host-tt-wrap { overflow-x: auto; padding-bottom: 4px; margin-bottom: 1rem; }
@@ -350,7 +352,8 @@ table.host-tt td.hcell.on { background: #1e3a5f; border-color: #1e3a5f; }
         <div class="sched-step-seg active"></div>
       </div>
       <div id="result-content"></div>
-      <button class="btn-secondary" onclick="goTo('s-scheduler-responses')">← 다시 보기</button>
+      <button class="btn-ics" id="btn-export-all" onclick="exportAllIcs()" style="display:none;">📅 전체 일정 아웃룩으로 내보내기</button>
+      <button class="btn-secondary" onclick="goTo('s-scheduler-responses')" style="margin-top:8px;">← 다시 보기</button>
       <button class="btn-secondary" onclick="goTo('s-admin')" style="margin-top:6px;">관리자 화면으로</button>
     </div>
   </div>
@@ -887,6 +890,8 @@ function runScheduler() {
 function renderResult(assigned, unmatched) {
   var el = document.getElementById('result-content');
   el.innerHTML = '';
+  lastAssigned = assigned; // ICS 내보내기용 저장
+  document.getElementById('btn-export-all').style.display = assigned.length ? 'block' : 'none';
 
   if (!assigned.length && !unmatched.length) {
     el.innerHTML='<div class="info-card">응답 데이터가 없습니다.</div>'; return;
@@ -923,12 +928,21 @@ function renderResult(assigned, unmatched) {
       var arrow = document.createElement('span'); arrow.className='result-arrow'; arrow.textContent='→';
       var av = document.createElement('div'); av.className='result-avatar';
       av.style.background=ac.bg; av.style.color=ac.color; av.textContent=initials;
-      var nameWrap = document.createElement('div');
+      var nameWrap = document.createElement('div'); nameWrap.style.flex='1';
       var nameEl = document.createElement('div'); nameEl.className='result-name'; nameEl.textContent=item.resp.name;
       var orgEl = document.createElement('div'); orgEl.className='result-org'; orgEl.textContent=item.resp.org;
       nameWrap.appendChild(nameEl); nameWrap.appendChild(orgEl);
 
-      row.appendChild(timeBadge); row.appendChild(arrow); row.appendChild(av); row.appendChild(nameWrap);
+      // 개별 ICS 버튼
+      var icsBtn = document.createElement('button');
+      icsBtn.textContent = '📅';
+      icsBtn.title = '아웃룩으로 내보내기';
+      icsBtn.style.cssText = 'border:1px solid var(--border-strong);background:transparent;border-radius:6px;padding:4px 7px;cursor:pointer;font-size:14px;flex-shrink:0;';
+      (function(slot, resp) {
+        icsBtn.onclick = function() { exportSingleIcs(slot, resp); };
+      })(item.slot, item.resp);
+
+      row.appendChild(timeBadge); row.appendChild(arrow); row.appendChild(av); row.appendChild(nameWrap); row.appendChild(icsBtn);
       section.appendChild(row);
     }
     el.appendChild(section);
@@ -952,6 +966,65 @@ function renderResult(assigned, unmatched) {
     ok.textContent='✓ 전원 배치 완료!';
     el.appendChild(ok);
   }
+}
+
+var lastAssigned = [];
+
+function toIcsDate(iso, hour) {
+  return iso.replace(/-/g,'') + 'T' + String(hour).padStart(2,'0') + '0000';
+}
+
+function buildIcsEvent(slot, resp, eventTitle) {
+  var slotParts = slot.split('-');
+  var h = parseInt(slotParts[slotParts.length-1]);
+  var iso = slotParts.slice(0,3).join('-');
+  var title = (eventTitle || '미팅') + ' — ' + resp.name + ' (' + resp.org + ')';
+  var uid = 'schedule-' + slot.replace(/:/g,'') + '-' + resp.id + '@scheduleapp';
+  return [
+    'BEGIN:VEVENT',
+    'UID:' + uid,
+    'SUMMARY:' + title,
+    'DTSTART;TZID=Asia/Seoul:' + toIcsDate(iso, h),
+    'DTEND;TZID=Asia/Seoul:' + toIcsDate(iso, h+1),
+    'DESCRIPTION:' + resp.org + ' ' + resp.name + '님과의 미팅',
+    'END:VEVENT'
+  ].join('\r\n');
+}
+
+function wrapIcs(events) {
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//ScheduleApp//KR',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'X-WR-TIMEZONE:Asia/Seoul'
+  ].join('\r\n') + '\r\n' + events.join('\r\n') + '\r\nEND:VCALENDAR';
+}
+
+function downloadIcs(content, filename) {
+  var blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a'); a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+function exportSingleIcs(slot, resp) {
+  var titleEl = document.getElementById('event-title');
+  var title = titleEl ? titleEl.value.trim() : '미팅';
+  var content = wrapIcs([buildIcsEvent(slot, resp, title)]);
+  var slotParts = slot.split('-');
+  var h = slotParts[slotParts.length-1];
+  var iso = slotParts.slice(0,3).join('-');
+  downloadIcs(content, iso + '_' + h + 'h_' + resp.name + '.ics');
+}
+
+function exportAllIcs() {
+  var titleEl = document.getElementById('event-title');
+  var title = titleEl ? titleEl.value.trim() : '미팅';
+  var events = lastAssigned.map(function(item) { return buildIcsEvent(item.slot, item.resp, title); });
+  downloadIcs(wrapIcs(events), '일정배치_전체.ics');
 }
 
 renderCalendar();
