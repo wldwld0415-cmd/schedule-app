@@ -177,7 +177,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
             <button onclick="addDateSlot()">+ 날짜 추가</button>
           </div>
         </div>
-        <button class="btn btn-primary" onclick="createEvent()">대리인 응답 링크 생성</button>
+        <button class="btn btn-primary" onclick="createScheduleEvent()">대리인 응답 링크 생성</button>
         <div id="manager-link-area" style="display:none;margin-top:1.25rem">
           <hr class="divider" style="margin-top:0"/>
           <div class="sec-title">생성된 링크</div>
@@ -356,7 +356,7 @@ function renderGrid(cid, slots, sel, onToggle){
 }
 
 // ── CREATE EVENT ──
-async function createEvent(){
+async function createScheduleEvent(){
   if(!S.firms.length){alert('법인을 1개 이상 추가하세요.');return;}
   if(!S.dates.length){alert('날짜를 1개 이상 추가하세요.');return;}
   for(var i=0;i<S.dates.length;i++){ if(S.dates[i].startH>=S.dates[i].endH){alert('시작 시간이 종료 시간보다 늦습니다: '+dateLabel(S.dates[i].date));return;} }
