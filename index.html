@@ -31,6 +31,14 @@ async function fbGetAll(path){
   var val = snap.val();
   return Object.keys(val).map(function(k){ return Object.assign({_key:k}, val[k]); });
 }
+async function fbDelete(path){ await db.ref(path).remove(); }
+var EXPIRE_MS = 30 * 24 * 60 * 60 * 1000;
+async function checkExpired(eid,ev){
+  if(!ev||!ev.expires_at) return false;
+  if(Date.now()<ev.expires_at) return false;
+  try{ await fbDelete("events/"+eid); await fbDelete("agent_responses/"+eid); await fbDelete("inventor_responses/"+eid); }catch(e){}
+  return true;
+}
 </script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -183,6 +191,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
           <div class="sec-title">생성된 링크</div>
           <div class="link-box" id="manager-link-box"></div>
           <p style="font-size:11px;color:var(--hint);margin-top:5px">이 링크를 각 특허 대리인에게 전달하세요.</p>
+          <p style="font-size:11px;color:var(--amber);margin-top:3px" id="expire-notice"></p>
         </div>
       </div>
     </div>
@@ -363,7 +372,7 @@ async function createScheduleEvent(){
   var title=document.getElementById('event-title').value.trim()||'발명 설명 미팅';
   var id=newId(); ov(true);
   try{
-    await fbSet('events/'+id, {title:title, date_slots:S.dates, firms:S.firms, created_at:Date.now()});
+    await fbSet('events/'+id, {title:title, date_slots:S.dates, firms:S.firms, created_at:Date.now(), expires_at:Date.now()+EXPIRE_MS});
     S.currentEid=id;
     setManagerLink(id);
     refreshAll();
@@ -381,6 +390,10 @@ function setManagerLink(id){
   box.appendChild(btn);
   document.getElementById('manager-link-area').style.display='block';
   document.getElementById('resp-card').style.display='block';
+  var expDate=new Date(Date.now()+EXPIRE_MS);
+  var expStr=expDate.getFullYear()+'/'+(expDate.getMonth()+1)+'/'+(expDate.getDate());
+  var noticeEl=document.getElementById('expire-notice');
+  if(noticeEl) noticeEl.textContent='⚠ 이 이벤트는 '+expStr+' 이후 자동 삭제됩니다 (30일).';
 }
 
 // ── TABS ──
@@ -403,6 +416,7 @@ async function renderAgentTab(){
   try{
     var ev=await fbGet('events/'+S.currentEid);
     if(!ev){el.innerHTML='<div class="msg msg-red">이벤트를 찾을 수 없습니다.</div>';return;}
+    if(await checkExpired(S.currentEid,ev)){el.innerHTML='<div class="msg msg-red">만료된 이벤트입니다 (30일 경과).</div>';return;}
     var agentsRaw=await fbGet('agent_responses/'+S.currentEid);
     // agentsRaw: { encKey(firm): { encKey(name): {slots:[...]} } }
     var html=''; var hasAny=false;
@@ -470,6 +484,7 @@ async function renderScheduleTab(){
   el.innerHTML='<div class="empty">불러오는 중...</div>';
   try{
     var ev=await fbGet('events/'+S.currentEid);
+    if(await checkExpired(S.currentEid,ev)){el.innerHTML='<div class="msg msg-red">만료된 이벤트입니다 (30일 경과).</div>';return;}
     var agentsRaw=await fbGet('agent_responses/'+S.currentEid);
     var invRaw=await fbGet('inventor_responses/'+S.currentEid);
     if(!ev){el.innerHTML='<div class="msg msg-red">이벤트를 찾을 수 없습니다.</div>';return;}
@@ -529,6 +544,7 @@ async function initAgent(params){
   try{
     var ev=await fbGet('events/'+params.eid);
     if(!ev){document.getElementById('sc-agent').innerHTML='<div class="card"><div class="card-body"><div class="msg msg-red">이벤트를 찾을 수 없습니다.</div></div></div>';return;}
+    if(await checkExpired(params.eid,ev)){document.getElementById('sc-agent').innerHTML='<div class="card"><div class="card-body"><div class="msg msg-red">만료된 이벤트입니다 (30일 경과).</div></div></div>';return;}
     S.agEid=params.eid; S.agSlots=[];
     document.getElementById('agent-title').textContent=ev.title;
     var firms=ev.firms||[];
@@ -565,6 +581,7 @@ async function initInventor(params){
   try{
     var ev=await fbGet('events/'+params.eid);
     if(!ev){document.getElementById('sc-inventor').innerHTML='<div class="card"><div class="card-body"><div class="msg msg-red">이벤트를 찾을 수 없습니다.</div></div></div>';return;}
+    if(await checkExpired(params.eid,ev)){document.getElementById('sc-inventor').innerHTML='<div class="card"><div class="card-body"><div class="msg msg-red">만료된 이벤트입니다 (30일 경과).</div></div></div>';return;}
     document.getElementById('inv-title').textContent=ev.title;
     var agData=await fbGet('agent_responses/'+params.eid+'/'+encKey(firm)+'/'+encKey(agName));
     var notice=document.getElementById('inv-notice'); var allSlots;
