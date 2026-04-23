@@ -279,11 +279,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         </div>
         <div id="adash-inventors"></div>
 
-        <hr class="divider"/>
-
-        <div class="sec-title">발명자 공유 링크</div>
-        <div id="adash-inv-link"></div>
-        <p style="font-size:11px;color:var(--hint);margin-top:5px">이 링크를 발명자에게 공유하세요.</p>
 
       </div>
     </div>
@@ -699,11 +694,6 @@ async function initAgentDash(params){
   btn.onclick=function(){copyText(myLink);};
   lb.appendChild(btn);
 
-  // 발명자 공유 링크
-  var agKey=encodeURIComponent(AD.firm+'|||'+AD.name);
-  var invLink=location.origin+location.pathname+'?mode=inventor&eid='+AD.eid+'&agkey='+agKey;
-  var invLinkEl=document.getElementById('adash-inv-link');
-  invLinkEl.innerHTML='<div class="link-box">'+escH(invLink)+'<button class="copy-btn" onclick="copyText(\''+invLink+'\')">복사</button></div>';
 
   await adashRefresh();
 }
