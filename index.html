@@ -17,7 +17,6 @@ var firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 var db = firebase.database();
 
-// ── Firebase helpers (Supabase-style wrappers) ──
 async function fbGet(path){
   var snap = await db.ref(path).get();
   return snap.exists() ? snap.val() : null;
@@ -62,6 +61,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .badge-agent{background:#dbeafe;color:#1e40af}
 .badge-inventor{background:#d1fae5;color:#065f46}
 .badge-done{background:#f3f4f6;color:#6b7280}
+.badge-dash{background:#ede9fe;color:#5b21b6}
 .card-header h2{font-size:16px;font-weight:700;margin-bottom:3px}
 .card-header p{font-size:12px;color:var(--muted);line-height:1.6}
 .card-body{padding:1.5rem}
@@ -70,7 +70,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .field label{display:block;font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--muted);margin-bottom:6px;text-transform:uppercase}
 .field input,.field select{width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;font-family:inherit;color:var(--text);background:#fff;outline:none;transition:border-color .15s}
 .field input:focus,.field select:focus{border-color:var(--accent)}
-/* firm manager */
 .firm-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:28px}
 .firm-tag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:20px;font-size:12px;font-weight:500;color:var(--accent)}
 .firm-tag .rm{background:none;border:none;cursor:pointer;color:var(--accent);font-size:15px;line-height:1;padding:0;opacity:.7}
@@ -80,7 +79,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .firm-add-row input:focus{border-color:var(--accent)}
 .firm-add-row button{padding:7px 12px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer}
 .firm-add-row button:hover{background:#1e40af}
-/* date slots */
 .date-row{display:flex;gap:8px;align-items:center;padding:9px 11px;background:var(--tag);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px}
 .date-row .dl{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;min-width:96px}
 .date-row .ti{display:flex;align-items:center;gap:5px;flex:1}
@@ -92,37 +90,33 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .add-date-row input[type=date]{flex:1;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius);font-size:12px;font-family:'DM Mono',monospace;outline:none;background:#fff}
 .add-date-row button{padding:7px 12px;background:#fff;border:1px solid var(--border2);border-radius:var(--radius);font-size:12px;font-family:inherit;cursor:pointer;color:var(--text)}
 .add-date-row button:hover{background:var(--tag)}
-/* slot grid */
 .slots-wrap{max-height:240px;overflow-y:auto;padding:2px}
 .slot-date-group{margin-bottom:10px}
 .slot-date-label{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--muted);margin-bottom:5px;text-transform:uppercase}
 .slot-item{display:inline-block;padding:5px 9px;margin:2px;border:1px solid var(--border2);border-radius:5px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;user-select:none;background:#fff;transition:all .1s}
 .slot-item:hover{border-color:var(--accent);color:var(--accent)}
 .slot-item.sel{background:var(--accent);border-color:var(--accent);color:#fff}
-/* buttons */
+.slot-item.static{cursor:default}
 .btn{display:block;width:100%;padding:11px;border:none;border-radius:var(--radius);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .12s;text-align:center}
 .btn-primary{background:var(--accent);color:#fff}
 .btn-primary:hover{background:#1e40af}
 .btn-green{background:var(--green);color:#fff}
 .btn-green:hover{background:#166534}
-/* link box */
+.btn-outline{background:#fff;border:1px solid var(--border2);color:var(--text)}
+.btn-outline:hover{background:var(--tag)}
 .link-box{background:var(--tag);border:1px solid var(--border);border-radius:var(--radius);padding:9px 52px 9px 11px;font-family:'DM Mono',monospace;font-size:11px;word-break:break-all;color:var(--muted);position:relative;line-height:1.5}
 .copy-btn{position:absolute;top:8px;right:8px;background:#fff;border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit;color:var(--muted)}
 .copy-btn:hover{color:var(--accent)}
-/* firm select */
 .firm-sel-card{border:1px solid var(--border);border-radius:var(--radius);padding:11px 14px;margin-bottom:7px;cursor:pointer;transition:all .12s;display:flex;justify-content:space-between;align-items:center}
 .firm-sel-card:hover,.firm-sel-card.active{border-color:var(--accent);background:var(--accent-bg)}
 .firm-sel-card .fn{font-size:14px;font-weight:600}
 .firm-sel-card .arr{font-size:18px;color:var(--hint)}
-/* tabs */
 .tab-bar{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.25rem}
 .tab{padding:8px 0;font-size:12px;font-weight:600;color:var(--hint);cursor:pointer;margin-right:18px;border-bottom:2px solid transparent;transition:all .12s}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-/* agent row */
 .agent-row{font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:5px;display:flex;align-items:center;gap:8px}
 .agent-row .aname{font-weight:600;flex:1}
 .agent-row .acnt{font-size:11px;color:var(--muted)}
-/* schedule */
 .sched-item{display:flex;gap:10px;align-items:center;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:5px;background:#fff}
 .sched-time{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);font-weight:500;min-width:64px;line-height:1.5;white-space:pre-line}
 .sched-info{flex:1}
@@ -132,20 +126,26 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .sched-ics:hover{color:var(--accent);border-color:var(--accent)}
 .no-match{border-color:var(--red)!important;opacity:.65}
 .no-match .sched-time{color:var(--red)}
-/* utils */
 .msg{padding:11px 13px;border-radius:var(--radius);font-size:13px;margin-bottom:12px;line-height:1.5}
 .msg-info{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
 .msg-amber{background:var(--amber-bg);color:var(--amber)}
 .msg-red{background:var(--red-bg);color:var(--red)}
 .divider{border:none;border-top:1px solid var(--border);margin:1.25rem 0}
-.sec-title{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--hint);margin-bottom:8px}
+.sec-title{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--hint);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
 .empty{text-align:center;padding:1.5rem;color:var(--hint);font-size:13px}
-.refresh-btn{float:right;background:none;border:1px solid var(--border2);border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit;color:var(--muted)}
+.refresh-btn{background:none;border:1px solid var(--border2);border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit;color:var(--muted);flex-shrink:0}
 .refresh-btn:hover{color:var(--accent)}
 .loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,.15);display:none;align-items:center;justify-content:center;z-index:100}
 .loading-box{background:#fff;border-radius:10px;padding:1.5rem 2rem;font-size:14px;color:var(--muted);display:flex;align-items:center;gap:10px}
 .spin{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+/* history card */
+.history-event-row{border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:7px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:all .12s}
+.history-event-row:hover{border-color:var(--accent);background:var(--accent-bg)}
+.history-event-row .he-title{font-size:14px;font-weight:600}
+.history-event-row .he-meta{font-size:11px;color:var(--muted);margin-top:2px}
+/* agent dash */
+.adash-slots-preview{display:flex;flex-wrap:wrap;gap:4px;padding:4px 0}
 </style>
 </head>
 <body>
@@ -198,7 +198,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
     <div class="card" id="resp-card" style="display:none">
       <div class="card-header">
-        <button class="refresh-btn" onclick="refreshAll()">↻ 새로고침</button>
+        <button class="refresh-btn" style="float:right" onclick="refreshAll()">↻ 새로고침</button>
         <h2>응답 현황</h2>
       </div>
       <div class="card-body">
@@ -211,6 +211,15 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <div id="tab-inventors" style="display:none"><div class="empty">아직 발명자 응답이 없습니다.</div></div>
         <div id="tab-schedule" style="display:none"><div class="empty">발명자 응답이 수집되면 자동으로 배치됩니다.</div></div>
       </div>
+    </div>
+
+    <!-- 최근 이벤트 (localStorage) -->
+    <div class="card" id="history-card" style="display:none">
+      <div class="card-header">
+        <h2>최근 이벤트</h2>
+        <p>이전에 이 기기에서 생성한 이벤트입니다. 클릭하면 불러옵니다.</p>
+      </div>
+      <div class="card-body" id="history-body"></div>
     </div>
   </div>
 
@@ -236,6 +245,46 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
           <div class="slots-wrap" id="agent-slots"></div>
         </div>
         <button class="btn btn-primary" onclick="submitAgent()">응답 제출</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENT DASHBOARD -->
+  <div id="sc-agent-dash" class="screen">
+    <div class="card">
+      <div class="card-header">
+        <span class="badge badge-dash">대리인 전용 페이지</span>
+        <h2 id="adash-name"></h2>
+        <p id="adash-firm"></p>
+      </div>
+      <div class="card-body">
+
+        <div class="sec-title">내 전용 페이지 주소</div>
+        <div class="link-box" id="adash-mylink"></div>
+        <p style="font-size:11px;color:var(--hint);margin-top:5px;margin-bottom:1.25rem">
+          이 주소를 북마크해 두면 언제든지 현황을 확인하고 응답을 수정할 수 있습니다.
+        </p>
+
+        <div class="sec-title">
+          내가 선택한 가능 시간
+          <button class="refresh-btn" onclick="adashGoEdit()">✏ 수정</button>
+        </div>
+        <div id="adash-slots" style="margin-bottom:1rem"></div>
+
+        <hr class="divider"/>
+
+        <div class="sec-title">
+          발명자 응답 현황
+          <button class="refresh-btn" onclick="adashRefresh()">↻ 새로고침</button>
+        </div>
+        <div id="adash-inventors"></div>
+
+        <hr class="divider"/>
+
+        <div class="sec-title">발명자 공유 링크</div>
+        <div id="adash-inv-link"></div>
+        <p style="font-size:11px;color:var(--hint);margin-top:5px">이 링크를 발명자에게 공유하세요.</p>
+
       </div>
     </div>
   </div>
@@ -287,6 +336,28 @@ var S = {
   invSlots: [], invAgKey: '', invEid: ''
 };
 
+// ── AGENT DASHBOARD STATE ──
+var AD = { eid: '', firm: '', name: '' };
+
+// ── LOCALSTORAGE: MANAGER HISTORY ──
+var LS_KEY = 'patent_mgr_events_v1';
+function lsSave(eid, title) {
+  var arr = lsLoad();
+  arr = arr.filter(function(e){ return e.eid !== eid; });
+  arr.unshift({ eid: eid, title: title, saved: Date.now() });
+  arr = arr.slice(0, 15);
+  try { localStorage.setItem(LS_KEY, JSON.stringify(arr)); } catch(e) {}
+}
+function lsLoad() {
+  try {
+    var raw = localStorage.getItem(LS_KEY);
+    if (!raw) return [];
+    var arr = JSON.parse(raw);
+    var cutoff = Date.now() - EXPIRE_MS;
+    return arr.filter(function(e){ return e.saved > cutoff; });
+  } catch(e) { return []; }
+}
+
 // ── UTILS ──
 function fmtH(h){ return String(h).padStart(2,'0')+':00'; }
 function dateLabel(d){
@@ -299,7 +370,6 @@ function ov(on){ document.getElementById('ov').style.display=on?'flex':'none'; }
 function copyText(t){ navigator.clipboard.writeText(t).then(function(){alert('복사되었습니다.');}); }
 function newId(){ return Math.random().toString(36).slice(2,9)+Math.random().toString(36).slice(2,5); }
 function escH(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-// Firebase key-safe encode (Firebase 경로에 . / [ ] # $ 불가)
 function encKey(s){ return encodeURIComponent(s).replace(/\./g,'%2E'); }
 function decKey(s){ return decodeURIComponent(s); }
 
@@ -374,8 +444,11 @@ async function createScheduleEvent(){
   try{
     await fbSet('events/'+id, {title:title, date_slots:S.dates, firms:S.firms, created_at:Date.now(), expires_at:Date.now()+EXPIRE_MS});
     S.currentEid=id;
+    lsSave(id, title);
+    history.pushState(null,'',location.pathname+'?eid='+id);
     setManagerLink(id);
     refreshAll();
+    renderManagerHistory();
   }catch(e){ alert('저장 실패: '+e.message); }
   ov(false);
 }
@@ -394,6 +467,42 @@ function setManagerLink(id){
   var expStr=expDate.getFullYear()+'/'+(expDate.getMonth()+1)+'/'+(expDate.getDate());
   var noticeEl=document.getElementById('expire-notice');
   if(noticeEl) noticeEl.textContent='⚠ 이 이벤트는 '+expStr+' 이후 자동 삭제됩니다 (30일).';
+}
+
+// ── MANAGER HISTORY ──
+function renderManagerHistory(){
+  var events = lsLoad();
+  var card = document.getElementById('history-card');
+  var body = document.getElementById('history-body');
+  if(!events.length){ card.style.display='none'; return; }
+  card.style.display='block';
+  body.innerHTML = events.map(function(e){
+    var d = new Date(e.saved);
+    var ds = d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate();
+    var isCurrent = S.currentEid === e.eid;
+    return '<div class="history-event-row'+(isCurrent?' active':'')+'" onclick="loadManagerEvent(\''+e.eid+'\')">'+
+      '<div><div class="he-title">'+escH(e.title)+(isCurrent?' <span style="font-size:10px;font-weight:400;color:var(--accent)">(현재)</span>':'')+'</div>'+
+      '<div class="he-meta">생성일: '+ds+'</div></div>'+
+      '<span class="arr">›</span></div>';
+  }).join('');
+}
+
+async function loadManagerEvent(eid){
+  if(S.currentEid===eid) return;
+  ov(true);
+  try{
+    var ev=await fbGet('events/'+eid);
+    if(!ev||await checkExpired(eid,ev)){ alert('이벤트를 찾을 수 없거나 만료되었습니다.'); ov(false); return; }
+    S.currentEid=eid;
+    S.firms=ev.firms||[]; S.dates=ev.date_slots||[];
+    document.getElementById('event-title').value=ev.title;
+    renderFirms(); renderDateSlots();
+    setManagerLink(eid);
+    history.pushState(null,'',location.pathname+'?eid='+eid);
+    await refreshAll();
+    renderManagerHistory();
+  }catch(e){ alert('불러오기 실패: '+e.message); }
+  ov(false);
 }
 
 // ── TABS ──
@@ -418,7 +527,6 @@ async function renderAgentTab(){
     if(!ev){el.innerHTML='<div class="msg msg-red">이벤트를 찾을 수 없습니다.</div>';return;}
     if(await checkExpired(S.currentEid,ev)){el.innerHTML='<div class="msg msg-red">만료된 이벤트입니다 (30일 경과).</div>';return;}
     var agentsRaw=await fbGet('agent_responses/'+S.currentEid);
-    // agentsRaw: { encKey(firm): { encKey(name): {slots:[...]} } }
     var html=''; var hasAny=false;
     var firms=ev.firms||[];
     firms.forEach(function(firm){
@@ -432,7 +540,9 @@ async function renderAgentTab(){
         names.forEach(function(nk){
           var agName=decKey(nk);
           var slots=firmData[nk].slots||[];
-          html+='<div class="agent-row"><span class="aname">'+escH(agName)+'</span><span class="acnt">'+slots.length+'개 선택</span></div>';
+          var dashUrl=location.origin+location.pathname+'?mode=agent_dash&eid='+S.currentEid+'&firm='+encodeURIComponent(firm)+'&name='+encodeURIComponent(agName);
+          html+='<div class="agent-row"><span class="aname">'+escH(agName)+'</span><span class="acnt">'+slots.length+'개 선택</span>'+
+            '<a href="'+dashUrl+'" target="_blank" style="font-size:10px;color:var(--accent);text-decoration:none;border:1px solid var(--accent-border);border-radius:4px;padding:2px 7px">페이지 열기</a></div>';
         });
       }
       html+='</div>';
@@ -462,7 +572,6 @@ async function renderInventorTab(){
     var invRaw=await fbGet('inventor_responses/'+S.currentEid);
     if(!invRaw){el.innerHTML='<div class="empty">아직 발명자 응답이 없습니다.</div>';return;}
     var html='';
-    // invRaw: { encKey(agKey): { encKey(name): {slots:[...]} } }
     Object.keys(invRaw).forEach(function(agKeyEnc){
       var agKey=decKey(agKeyEnc);
       var parts=agKey.split('|||'); var firm=parts[0],agName=parts[1];
@@ -565,11 +674,116 @@ async function submitAgent(){
   try{
     var path='agent_responses/'+S.agEid+'/'+encKey(S.agFirm)+'/'+encKey(name);
     await fbSet(path, {slots:S.agSlots, submitted_at:Date.now()});
-    document.getElementById('done-title').textContent='응답이 제출되었습니다';
-    document.getElementById('done-body').textContent=S.agFirm+' / '+name+'님, '+S.agSlots.length+'개 시간이 저장되었습니다. 내부 담당자가 발명자 응답 링크를 전달할 예정입니다.';
-    showScreen('sc-done');
-  }catch(e){alert('제출 실패: '+e.message);}
-  ov(false);
+    // 전용 대시보드 페이지로 이동
+    var dashUrl=location.origin+location.pathname+'?mode=agent_dash&eid='+S.agEid+'&firm='+encodeURIComponent(S.agFirm)+'&name='+encodeURIComponent(name);
+    window.location.href=dashUrl;
+  }catch(e){alert('제출 실패: '+e.message); ov(false);}
+}
+
+// ── AGENT DASHBOARD ──
+async function initAgentDash(params){
+  showScreen('sc-agent-dash');
+  AD.eid=params.eid;
+  AD.firm=decodeURIComponent(params.firm||'');
+  AD.name=decodeURIComponent(params.name||'');
+
+  document.getElementById('adash-name').textContent=AD.name;
+  document.getElementById('adash-firm').textContent=AD.firm;
+
+  // 내 전용 페이지 주소
+  var myLink=location.origin+location.pathname+'?mode=agent_dash&eid='+AD.eid+'&firm='+encodeURIComponent(AD.firm)+'&name='+encodeURIComponent(AD.name);
+  var lb=document.getElementById('adash-mylink');
+  lb.textContent=myLink;
+  var btn=document.createElement('button');
+  btn.className='copy-btn'; btn.textContent='복사';
+  btn.onclick=function(){copyText(myLink);};
+  lb.appendChild(btn);
+
+  // 발명자 공유 링크
+  var agKey=encodeURIComponent(AD.firm+'|||'+AD.name);
+  var invLink=location.origin+location.pathname+'?mode=inventor&eid='+AD.eid+'&agkey='+agKey;
+  var invLinkEl=document.getElementById('adash-inv-link');
+  invLinkEl.innerHTML='<div class="link-box">'+escH(invLink)+'<button class="copy-btn" onclick="copyText(\''+invLink+'\')">복사</button></div>';
+
+  await adashRefresh();
+}
+
+async function adashRefresh(){
+  var slotsEl=document.getElementById('adash-slots');
+  var invEl=document.getElementById('adash-inventors');
+  slotsEl.innerHTML='<div class="empty">불러오는 중...</div>';
+  invEl.innerHTML='<div class="empty">불러오는 중...</div>';
+  try{
+    var ev=await fbGet('events/'+AD.eid);
+    if(!ev||await checkExpired(AD.eid,ev)){
+      slotsEl.innerHTML='<div class="msg msg-red">만료된 이벤트입니다.</div>';
+      invEl.innerHTML='';
+      return;
+    }
+
+    // 내 가용 시간
+    var agData=await fbGet('agent_responses/'+AD.eid+'/'+encKey(AD.firm)+'/'+encKey(AD.name));
+    if(agData&&agData.slots&&agData.slots.length){
+      var groups={};
+      agData.slots.forEach(function(s){ var d=s.split('_')[0]; if(!groups[d])groups[d]=[]; groups[d].push(s); });
+      var html='';
+      Object.keys(groups).sort().forEach(function(date){
+        html+='<div class="slot-date-group"><div class="slot-date-label">'+dateLabel(date)+'</div><div class="adash-slots-preview">';
+        groups[date].forEach(function(s){
+          html+='<span class="slot-item sel static">'+fmtH(parseInt(s.split('_')[1]))+'</span>';
+        });
+        html+='</div></div>';
+      });
+      var sub=document.getElementById('adash-firm');
+      var ts=agData.submitted_at?new Date(agData.submitted_at):'';
+      if(ts) sub.textContent=AD.firm+' · 마지막 제출: '+ts.getFullYear()+'/'+(ts.getMonth()+1)+'/'+ts.getDate()+' '+String(ts.getHours()).padStart(2,'0')+':'+String(ts.getMinutes()).padStart(2,'0');
+      slotsEl.innerHTML=html;
+    } else {
+      slotsEl.innerHTML='<div class="empty">아직 제출한 가용 시간이 없습니다.</div>';
+    }
+
+    // 발명자 응답
+    var agKeyEnc=encKey(AD.firm+'|||'+AD.name);
+    var invData=await fbGet('inventor_responses/'+AD.eid+'/'+agKeyEnc);
+    if(!invData||!Object.keys(invData).length){
+      invEl.innerHTML='<div class="empty">아직 발명자 응답이 없습니다.</div>';
+      return;
+    }
+    var agSlots=(agData&&agData.slots)?agData.slots.slice().sort():[];
+    var html=''; var used={};
+    Object.keys(invData).forEach(function(ink){
+      var invName=decKey(ink);
+      var invSlots=invData[ink].slots||[];
+      var ts2=invData[ink].submitted_at?new Date(invData[ink].submitted_at):'';
+      var tStr=ts2?ts2.getFullYear()+'/'+(ts2.getMonth()+1)+'/'+ts2.getDate():'';
+      // Find first matching slot
+      var match=null;
+      for(var i=0;i<agSlots.length;i++){
+        if(!used[agSlots[i]]&&invSlots.indexOf(agSlots[i])>=0){match=agSlots[i];used[match]=true;break;}
+      }
+      if(match){
+        var h=parseInt(match.split('_')[1]); var date=match.split('_')[0];
+        var item={date:date,h:h,name:invName,agName:AD.name,firm:AD.firm,title:ev.title};
+        html+='<div class="sched-item">'+
+          '<div class="sched-time">'+date.slice(5).replace('-','/')+'\n'+fmtH(h)+'</div>'+
+          '<div class="sched-info"><div class="sn">'+escH(invName)+'</div>'+
+          '<div class="ss">매칭 완료'+(tStr?' · '+tStr:'')+'</div></div>'+
+          '<button class="sched-ics" onclick=\'exportOne('+JSON.stringify(item)+')\'>📅 ICS</button></div>';
+      } else {
+        html+='<div class="sched-item no-match">'+
+          '<div class="sched-time">미배정</div>'+
+          '<div class="sched-info"><div class="sn">'+escH(invName)+'</div>'+
+          '<div class="ss">겹치는 시간 없음'+(tStr?' · '+tStr:'')+'</div></div></div>';
+      }
+    });
+    invEl.innerHTML=html;
+  }catch(e){
+    slotsEl.innerHTML='<div class="msg msg-red">오류: '+e.message+'</div>';
+  }
+}
+
+function adashGoEdit(){
+  window.location.href=location.origin+location.pathname+'?mode=agent&eid='+AD.eid;
 }
 
 // ── INVENTOR ──
@@ -624,6 +838,7 @@ async function route(){
   var p=getParams();
   if(p.mode==='agent'){ await initAgent(p); }
   else if(p.mode==='inventor'){ await initInventor(p); }
+  else if(p.mode==='agent_dash'){ await initAgentDash(p); }
   else {
     if(p.eid){
       S.currentEid=p.eid;
@@ -633,11 +848,13 @@ async function route(){
           S.firms=ev.firms||[]; S.dates=ev.date_slots||[];
           document.getElementById('event-title').value=ev.title;
           renderFirms(); renderDateSlots();
+          lsSave(p.eid, ev.title);
           setManagerLink(p.eid); refreshAll();
         }
       }catch(e){}
     }
     showScreen('sc-manager');
+    renderManagerHistory();
   }
 }
 
